@@ -5,7 +5,7 @@ from datetime import datetime
 import redis
 import clickhouse_connect
 
-# Redis
+# Для имитации очереди сообщений в реальном времени
 redis_client = redis.Redis(
     host="redis",
     port=6379,
@@ -15,8 +15,9 @@ redis_client = redis.Redis(
 STREAM_NAME = "bts_fan_events"
 GROUP_NAME = "bts_consumers"
 CONSUMER_NAME = "collector_1"
+#Читает и записывает в бд
 
-# ClickHouse
+# Отдаем данные в бд
 ch_client = clickhouse_connect.get_client(
     host="clickhouse",
     port=8123,
@@ -43,9 +44,10 @@ def process_event(event):
     data = json.loads(event)
 
     ch_client.insert(
-        "bts.fan_events",
-        [[
+        table="bts.fan_events",
+        data=[[
             datetime.fromisoformat(data["event_time"]),
+            data["event_id"],
             data["user_id"],
             data["content_id"],
             data["content_type"],
@@ -54,7 +56,19 @@ def process_event(event):
             data["watch_time_sec"],
             data["source"],
             data["mode"]
-        ]]
+        ]],
+        column_names=[
+            "event_time",
+            "event_id",
+            "user_id",
+            "content_id",
+            "content_type",
+            "member_bias",
+            "event_type",
+            "watch_time_sec",
+            "source",
+            "mode"
+        ]
     )
 
 def main():
